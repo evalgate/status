@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Independent, timestamped public availability observations for EvalGate. Stale probes display Unknown.">
+  <title>EvalGate service status</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.55; }
+    body { max-width: 46rem; margin: 4rem auto; padding: 0 1.25rem; }
+    h1 { font-size: 2rem; line-height: 1.2; } h2 { font-size: 1.4rem; }
+    #state { font-weight: 700; border-block: 1px solid #8888; padding: 1rem 0; }
+    table { border-collapse: collapse; width: 100%; } td, th { text-align: left; padding: .7rem .3rem; border-bottom: 1px solid #8888; }
+    a { color: light-dark(#174fa3, #9cc4ff); } a:focus-visible { outline: 3px solid currentColor; outline-offset: 4px; }
+    .note { font-size: .9rem; } #observed { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>EvalGate service status</h1>
+    <p>Public availability, checked independently through GitHub Actions.</p>
+    <p id="state" role="status">Unknown — loading the latest observation.</p>
+    <p id="observed"></p>
+    <table aria-label="Observed public boundaries"><thead><tr><th scope="col">Boundary</th><th scope="col">Observation</th><th scope="col">HTTP</th></tr></thead><tbody id="checks"></tbody></table>
+    <p id="workflow"></p>
+    <p class="note">A probe is a point-in-time observation. It does not verify every authenticated workflow or provide an SLA. Observations older than 20 minutes display Unknown. Scheduled checks may be delayed.</p>
+    <noscript><p>JavaScript is disabled. Read the timestamped <a href="status.json">raw status report</a> and treat reports older than 20 minutes as unknown.</p></noscript>
+    <p><a href="https://github.com/evalgate/status/actions">Probe history</a> · <a href="https://www.evalgate.com/docs/platform/feature-status">Product maturity</a> · <a href="mailto:hello@evalgate.com">Report an incident</a></p>
+  </main>
+  <script type="module">
+    import { currentStatus } from './status-state.mjs';
+    let report;
+    function render() {
+      const state = currentStatus(report);
+      document.getElementById('state').textContent = state === 'unknown' ? 'Unknown — a current observation is unavailable.' : state[0].toUpperCase() + state.slice(1);
+      document.getElementById('observed').textContent = report?.checkedAt ? 'Last observed: ' + report.checkedAt + ' UTC' : '';
+    }
+    try {
+      const response = await fetch('status.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Report unavailable');
+      report = await response.json();
+      for (const check of report.checks ?? []) {
+        const row = document.createElement('tr');
+        for (const value of [check.kind, check.status, check.httpStatus ?? 'No response']) { const cell = document.createElement('td'); cell.textContent = String(value); row.append(cell); }
+        document.getElementById('checks').append(row);
+      }
+      if (typeof report.workflowUrl === 'string' && /^https:\/\/github\.com\/evalgate\/status\/actions\/runs\/\d+$/.test(report.workflowUrl)) { const link = document.createElement('a'); link.href = report.workflowUrl; link.textContent = 'Evidence for this observation'; document.getElementById('workflow').append(link); }
+    } catch { report = null; }
+    render(); setInterval(render, 30000);
+  </script>
+</body>
+</html>
