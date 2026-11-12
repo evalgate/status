@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { classifyProbe, probe } from "./probe.mjs";
-import { currentStatus } from "../site/status-state.mjs";
+import { currentStatus, observationAge } from "../site/status-state.mjs";
 test("a root error or a non-200 cannot become operational", () => {
   assert.equal(classifyProbe("homepage", 500, "ok", "text/html"), "unavailable");
   assert.equal(classifyProbe("homepage", 200, "Application error: a server-side exception", "text/html"), "degraded");
@@ -18,4 +18,12 @@ test("missing, stale and future observations are unknown", () => {
 test("a transport failure records unavailable without leaking error text", async () => {
   const result = await probe(async () => { throw new Error("private data"); });
   assert.equal(result.status, "unavailable"); assert.equal(result.checks.length, 3); assert.ok(!JSON.stringify(result).includes("private data"));
+});
+test("observation age is reported in words and never for unusable times", () => {
+  const now = Date.parse("2026-11-12T12:00:00Z");
+  assert.equal(observationAge({ checkedAt: "2026-11-12T11:59:40Z" }, now), "less than a minute ago");
+  assert.equal(observationAge({ checkedAt: "2026-11-12T11:55:00Z" }, now), "5 minutes ago");
+  assert.equal(observationAge({ checkedAt: "2026-11-12T07:00:00Z" }, now), "5 hours ago");
+  assert.equal(observationAge({ checkedAt: "2026-11-09T12:00:00Z" }, now), "3 days ago");
+  for (const checkedAt of [undefined, "bad", "2026-11-12T12:05:00Z"]) assert.equal(observationAge({ checkedAt }, now), null);
 });
