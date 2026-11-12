@@ -22,17 +22,18 @@
     <p id="observed"></p>
     <table aria-label="Observed public boundaries"><thead><tr><th scope="col">Boundary</th><th scope="col">Observation</th><th scope="col">HTTP</th></tr></thead><tbody id="checks"></tbody></table>
     <p id="workflow"></p>
-    <p class="note">A probe is a point-in-time observation. It does not verify every authenticated workflow or provide an SLA. Observations older than 20 minutes display Unknown. Scheduled checks may be delayed.</p>
+    <p class="note">A probe is a point-in-time observation. It does not verify every authenticated workflow or provide an SLA. Observations older than 20 minutes display Unknown. GitHub often delays scheduled checks by hours, so the page frequently shows Unknown with the age of the last observation.</p>
     <noscript><p>JavaScript is disabled. Read the timestamped <a href="status.json">raw status report</a> and treat reports older than 20 minutes as unknown.</p></noscript>
     <p><a href="https://github.com/evalgate/status/actions">Probe history</a> · <a href="https://www.evalgate.com/docs/platform/feature-status">Product maturity</a> · <a href="mailto:hello@evalgate.com">Report an incident</a></p>
   </main>
   <script type="module">
-    import { currentStatus } from './status-state.mjs';
+    import { currentStatus, observationAge } from './status-state.mjs';
     let report;
     function render() {
       const state = currentStatus(report);
-      document.getElementById('state').textContent = state === 'unknown' ? 'Unknown — a current observation is unavailable.' : state[0].toUpperCase() + state.slice(1);
-      document.getElementById('observed').textContent = report?.checkedAt ? 'Last observed: ' + report.checkedAt + ' UTC' : '';
+      const age = observationAge(report);
+      document.getElementById('state').textContent = state === 'unknown' ? 'Unknown — no observation from the last 20 minutes.' : state[0].toUpperCase() + state.slice(1);
+      document.getElementById('observed').textContent = report?.checkedAt ? 'Last observed: ' + report.checkedAt + ' UTC' + (age ? ' (' + age + (state === 'unknown' && typeof report.status === 'string' ? ', when it was ' + report.status : '') + ')' : '') : '';
     }
     try {
       const response = await fetch('status.json', { cache: 'no-store' });

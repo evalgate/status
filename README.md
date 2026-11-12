@@ -4,8 +4,10 @@ Independent public availability probes for `https://www.evalgate.com`, hosted
 on [GitHub Pages](https://evalgate.github.io/status/). The report remains readable
 when the EvalGate application is unavailable.
 
-GitHub Actions requests the homepage, liveness and readiness endpoints every ten
-minutes and after changes. The report records HTTP status, check time and the
+GitHub Actions is scheduled to request the homepage, liveness and readiness
+endpoints every ten minutes and after changes. In practice GitHub delays and
+skips scheduled runs, so observations often arrive hours apart; the page then
+shows **Unknown** with the age of the last observation. The report records HTTP status, check time and the
 deployment workflow that produced it. It retains no user data or credentials.
 
 This is a point-in-time availability observation. It does not prove every
